@@ -1,7 +1,7 @@
 #!/bin/bash
 
-mkdir /home/cloudera/tpcds
-cd /home/cloudera/tpcds
+mkdir ~/tpcds
+cd ~/tpcds
 curl --output tpcds_kit.zip http://www.tpc.org/tpcds/dsgen/dsgen-download-files.asp?download_key=NaN
 unzip tpcds_kit.zip
 
@@ -13,21 +13,12 @@ make
 export PATH=$PATH:.
 DIR=$HOME/tpcds/data
 mkdir -p $DIR
-SCALE=1
+SCALE=1000
 FORCE=Y
 
-dsdgen -verbose -force $FORCE -dir $DIR -scale $SCALE -table store_sales
-dsdgen -verbose -force $FORCE -dir $DIR -scale $SCALE -table date_dim
-dsdgen -verbose -force $FORCE -dir $DIR -scale $SCALE -table time_dim
-dsdgen -verbose -force $FORCE -dir $DIR -scale $SCALE -table item
-dsdgen -verbose -force $FORCE -dir $DIR -scale $SCALE -table customer
-dsdgen -verbose -force $FORCE -dir $DIR -scale $SCALE -table customer_demographics
-dsdgen -verbose -force $FORCE -dir $DIR -scale $SCALE -table household_demographics
-dsdgen -verbose -force $FORCE -dir $DIR -scale $SCALE -table customer_address
-dsdgen -verbose -force $FORCE -dir $DIR -scale $SCALE -table store
-dsdgen -verbose -force $FORCE -dir $DIR -scale $SCALE -table promotion
-
+hdfs dfs -rm -r /hive/tpcds
 # copy data to hdfs
+hdfs dfs -mkdir /hive/tpcds
 hdfs dfs -mkdir /hive/tpcds/date_dim
 hdfs dfs -mkdir /hive/tpcds/time_dim
 hdfs dfs -mkdir /hive/tpcds/item
@@ -39,14 +30,36 @@ hdfs dfs -mkdir /hive/tpcds/store
 hdfs dfs -mkdir /hive/tpcds/promotion
 hdfs dfs -mkdir /hive/tpcds/store_sales
 
-cd $HOME/tpcds/data
+function putAndPurge {
+  for t in $DIR/$1
+  do
+    hdfs dfs -put ${t}.dat /hive/tpcds/${t}
+  done
+  rm -rfv $DIR/$1
+}
 
-for t in date_dim time_dim item customer customer_demographics household_demographics customer_address store promotion store_sales
-do
-hdfs dfs -put ${t}.dat /hive/tpcds/${t}
-done
+dsdgen -verbose -force $FORCE -dir $DIR -scale $SCALE -table store_sales
+putAndPurge store_sales
+dsdgen -verbose -force $FORCE -dir $DIR -scale $SCALE -table date_dim
+putAndPurge date_dim
+dsdgen -verbose -force $FORCE -dir $DIR -scale $SCALE -table time_dim
+putAndPurge time_dim
+dsdgen -verbose -force $FORCE -dir $DIR -scale $SCALE -table item
+putAndPurge item
+dsdgen -verbose -force $FORCE -dir $DIR -scale $SCALE -table customer
+putAndPurge customer
+dsdgen -verbose -force $FORCE -dir $DIR -scale $SCALE -table customer_demographics
+putAndPurge customer_demographics
+dsdgen -verbose -force $FORCE -dir $DIR -scale $SCALE -table household_demographics
+putAndPurge household_demographics
+dsdgen -verbose -force $FORCE -dir $DIR -scale $SCALE -table customer_address
+putAndPurge customer_address
+dsdgen -verbose -force $FORCE -dir $DIR -scale $SCALE -table store
+putAndPurge store
+dsdgen -verbose -force $FORCE -dir $DIR -scale $SCALE -table promotion
+putAndPurge promotion
 
 hdfs dfs -ls -R /hive/tpcds/*/*.dat
 
 # create the tables via hive
-hive -f /home/cloudera/impalascripts/tpcds_ss_tables.sql
+#hive -f ~/impalascripts/tpcds_ss_tables.sql
