@@ -1,7 +1,19 @@
 #!/bin/bash
 
-mkdir ~/tpcds
-cd ~/tpcds
+if [ "$#" -eq 0 ]; then
+  echo "Usage: tpcds-setup.sh BASE_DIR SCALE_FACTOR(optional)"
+  exit
+fi
+
+SCALE=1
+if [ "$#" -eq 2 ]; then
+  SCALE=$2
+fi
+
+BASE_DIR=$1
+
+mkdir $BASE_DIR/tpcds
+cd $BASE_DIR/tpcds
 curl --output tpcds_kit.zip http://www.tpc.org/tpcds/dsgen/dsgen-download-files.asp?download_key=NaN
 unzip tpcds_kit.zip
 
@@ -11,10 +23,10 @@ make
 
 # generate the data
 export PATH=$PATH:.
-DIR=$HOME/tpcds/data
+DIR=$BASE_DIR/tpcds/data
 mkdir -p $DIR
-SCALE=1000
 FORCE=Y
+PARALLEL=8
 
 hdfs dfs -rm -r /hive/tpcds
 # copy data to hdfs
@@ -31,32 +43,23 @@ hdfs dfs -mkdir /hive/tpcds/promotion
 hdfs dfs -mkdir /hive/tpcds/store_sales
 
 function putAndPurge {
-  for t in $DIR/$1
+  for t in $DIR/$1*.dat
   do
-    hdfs dfs -put ${t}.dat /hive/tpcds/${t}
+    hdfs dfs -put $t /hive/tpcds/$1
+    rm -fv $t
   done
-  rm -rfv $DIR/$1
 }
 
-dsdgen -verbose -force $FORCE -dir $DIR -scale $SCALE -table store_sales
+dsdgen -verbose -force $FORCE -dir $DIR -scale $SCALE -parallel $PARALLEL
 putAndPurge store_sales
-dsdgen -verbose -force $FORCE -dir $DIR -scale $SCALE -table date_dim
 putAndPurge date_dim
-dsdgen -verbose -force $FORCE -dir $DIR -scale $SCALE -table time_dim
 putAndPurge time_dim
-dsdgen -verbose -force $FORCE -dir $DIR -scale $SCALE -table item
 putAndPurge item
-dsdgen -verbose -force $FORCE -dir $DIR -scale $SCALE -table customer
-putAndPurge customer
-dsdgen -verbose -force $FORCE -dir $DIR -scale $SCALE -table customer_demographics
 putAndPurge customer_demographics
-dsdgen -verbose -force $FORCE -dir $DIR -scale $SCALE -table household_demographics
 putAndPurge household_demographics
-dsdgen -verbose -force $FORCE -dir $DIR -scale $SCALE -table customer_address
 putAndPurge customer_address
-dsdgen -verbose -force $FORCE -dir $DIR -scale $SCALE -table store
+putAndPurge customer
 putAndPurge store
-dsdgen -verbose -force $FORCE -dir $DIR -scale $SCALE -table promotion
 putAndPurge promotion
 
 hdfs dfs -ls -R /hive/tpcds/*/*.dat
