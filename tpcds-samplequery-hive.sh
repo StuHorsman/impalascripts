@@ -1,1 +1,1 @@
-hive -f /home/cloudera/impalascripts/tpcds_query.sql
+hive -f ./tpcds_query.sql

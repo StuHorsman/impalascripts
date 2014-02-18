@@ -28,24 +28,25 @@ mkdir -p $DIR
 FORCE=Y
 PARALLEL=8
 
-hdfs dfs -rm -r /hive/tpcds
+hdfs dfs -rm -r /user/hive/tpcds
 # copy data to hdfs
-hdfs dfs -mkdir /hive/tpcds
-hdfs dfs -mkdir /hive/tpcds/date_dim
-hdfs dfs -mkdir /hive/tpcds/time_dim
-hdfs dfs -mkdir /hive/tpcds/item
-hdfs dfs -mkdir /hive/tpcds/customer
-hdfs dfs -mkdir /hive/tpcds/customer_demographics
-hdfs dfs -mkdir /hive/tpcds/household_demographics
-hdfs dfs -mkdir /hive/tpcds/customer_address
-hdfs dfs -mkdir /hive/tpcds/store
-hdfs dfs -mkdir /hive/tpcds/promotion
-hdfs dfs -mkdir /hive/tpcds/store_sales
+hdfs dfs -mkdir /user/hive
+hdfs dfs -mkdir /user/hive/tpcds
+hdfs dfs -mkdir /user/hive/tpcds/date_dim
+hdfs dfs -mkdir /user/hive/tpcds/time_dim
+hdfs dfs -mkdir /user/hive/tpcds/item
+hdfs dfs -mkdir /user/hive/tpcds/customer
+hdfs dfs -mkdir /user/hive/tpcds/customer_demographics
+hdfs dfs -mkdir /user/hive/tpcds/household_demographics
+hdfs dfs -mkdir /user/hive/tpcds/customer_address
+hdfs dfs -mkdir /user/hive/tpcds/store
+hdfs dfs -mkdir /user/hive/tpcds/promotion
+hdfs dfs -mkdir /user/hive/tpcds/store_sales
 
 function putAndPurge {
   for t in $DIR/$1*.dat
   do
-    hdfs dfs -put $t /hive/tpcds/$1
+    hdfs dfs -put $t /user/hive/tpcds/$1
     rm -fv $t
   done
 }
@@ -62,7 +63,7 @@ putAndPurge customer
 putAndPurge store
 putAndPurge promotion
 
-hdfs dfs -ls -R /hive/tpcds/*/*.dat
+hdfs dfs -ls -R /user/hive/tpcds/*/*.dat
 
-# create the tables via hive
-#hive -f ~/impalascripts/tpcds_ss_tables.sql
+# create the tables via /user/hive
+hive -f ./tpcds_ss_tables.sql
